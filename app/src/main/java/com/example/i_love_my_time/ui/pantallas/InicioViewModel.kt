@@ -118,6 +118,15 @@ class InicioViewModel : ViewModel() {
         cargarRutinaSeleccionada() // Reinicia desde el principio de la serie 1
     }
 
+    fun saltarActividad() {
+        // Detiene el temporizador actual
+        trabajoTemporizador?.cancel()
+        estaCorriendo = false
+
+        // Pasa a la siguiente actividad inmediatamente
+        avanzarSiguienteActividad()
+    }
+
     fun obtenerTiempoFormateado(): String {
         val minutos = tiempoRestanteSegundos / 60
         val segundos = tiempoRestanteSegundos % 60

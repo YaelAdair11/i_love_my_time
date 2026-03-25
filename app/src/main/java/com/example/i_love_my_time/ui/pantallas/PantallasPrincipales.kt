@@ -131,25 +131,47 @@ fun PantallaInicio(viewModel: InicioViewModel = viewModel()) {
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // 1. Botón Stop (Izquierda)
                         IconButton(onClick = { viewModel.presionarStop() }) {
-                            BotonCircularControl(icono = "■", tamañoBoton = 40.dp, tamañoTexto = 16.sp)
+                            BotonCircularControl(
+                                icono = "■",
+                                tamañoBoton = 40.dp,
+                                tamañoTexto = 16.sp
+                            )
                         }
 
                         Spacer(modifier = Modifier.width(24.dp))
 
+                        // 2. Botón Central dinámico (Play o Pausa)
                         if (viewModel.estaCorriendo) {
                             IconButton(onClick = { viewModel.presionarPausa() }) {
-                                BotonCircularControl(icono = "❚❚", tamañoBoton = 64.dp, tamañoTexto = 24.sp, colorFondo = Color(0xFFE24B4A))
+                                BotonCircularControl(
+                                    icono = "❚❚",
+                                    tamañoBoton = 64.dp,
+                                    tamañoTexto = 24.sp,
+                                    colorFondo = Color(0xFFE24B4A)
+                                )
                             }
                         } else {
                             IconButton(onClick = { viewModel.presionarPlay() }) {
-                                BotonCircularControl(icono = "▶", tamañoBoton = 64.dp, tamañoTexto = 24.sp)
+                                BotonCircularControl(
+                                    icono = "▶",
+                                    tamañoBoton = 64.dp,
+                                    tamañoTexto = 24.sp
+                                )
                             }
                         }
 
                         Spacer(modifier = Modifier.width(24.dp))
 
-                        BotonCircularControl(icono = "▶|", tamañoBoton = 40.dp, tamañoTexto = 14.sp)
+                        // 3. Botón Siguiente / Saltar (Derecha)
+                        IconButton(onClick = { viewModel.saltarActividad() }) {
+                            BotonCircularControl(
+                                icono = "▶|",
+                                tamañoBoton = 40.dp,
+                                tamañoTexto = 14.sp
+                            )
+                        }
                     }
                 }
             }
@@ -249,6 +271,9 @@ fun PantallaCrearRutina(
     viewModel: CrearRutinaViewModel = viewModel()
 ) {
     var mostrarDialogo by remember { mutableStateOf(false) }
+    var nombreNuevaActividad by remember { mutableStateOf("Trabajo") }
+    var duracionNuevaActividad by remember { mutableStateOf("25") }
+    var tipoNuevaActividad by remember { mutableStateOf(com.example.i_love_my_time.modelo.TipoActividad.TRABAJO) }
 
     Column(
         modifier = Modifier
@@ -267,7 +292,12 @@ fun PantallaCrearRutina(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text("Nombre de la rutina", fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 12.sp)
+            Text(
+                "Nombre de la rutina",
+                fontWeight = FontWeight.Bold,
+                color = Color.Gray,
+                fontSize = 12.sp
+            )
             Spacer(modifier = Modifier.height(4.dp))
             OutlinedTextField(
                 value = viewModel.nombreRutina,
@@ -284,12 +314,16 @@ fun PantallaCrearRutina(
             Spacer(modifier = Modifier.height(8.dp))
 
             viewModel.actividades.forEach { actividad ->
-                val colorActividad = when(actividad.tipo) {
+                val colorActividad = when (actividad.tipo) {
                     com.example.i_love_my_time.modelo.TipoActividad.TRABAJO -> 0xFF378ADD
                     com.example.i_love_my_time.modelo.TipoActividad.DESCANSO_CORTO -> 0xFFE24B4A
                     com.example.i_love_my_time.modelo.TipoActividad.DESCANSO_LARGO -> 0xFF4CAF50
                 }
-                FilaActividad(colorHex = colorActividad, nombre = actividad.nombre, tiempo = "${actividad.duracionMinutos} min")
+                FilaActividad(
+                    colorHex = colorActividad,
+                    nombre = actividad.nombre,
+                    tiempo = "${actividad.duracionMinutos} min"
+                )
                 Divider(color = Color(0xFFEEEEEE))
             }
 
@@ -315,7 +349,11 @@ fun PantallaCrearRutina(
                     IconButton(onClick = { viewModel.disminuirRepeticiones() }) {
                         Icon(Icons.Default.Add, contentDescription = "Menos", tint = Color.Gray)
                     }
-                    Text("${viewModel.repeticiones}", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text(
+                        "${viewModel.repeticiones}",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
                     IconButton(onClick = { viewModel.aumentarRepeticiones() }) {
                         Icon(Icons.Default.Add, contentDescription = "Más", tint = Color.Gray)
                     }
@@ -337,27 +375,108 @@ fun PantallaCrearRutina(
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF378ADD)),
                 shape = RoundedCornerShape(8.dp)
             ) {
-                Text("Guardar rutina", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    "Guardar rutina",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
 
+    // Ventana flotante dinámica para configurar una nueva actividad
     if (mostrarDialogo) {
         AlertDialog(
             onDismissRequest = { mostrarDialogo = false },
-            title = { Text("Nueva Actividad") },
-            text = { Text("¿Qué tipo de actividad deseas agregar?") },
+            title = { Text("Agregar Actividad", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = nombreNuevaActividad,
+                        onValueChange = { nombreNuevaActividad = it },
+                        label = { Text("Nombre (Ej. Enfoque, Lectura)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = duracionNuevaActividad,
+                        onValueChange = { duracionNuevaActividad = it },
+                        label = { Text("Duración (minutos)") },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                        ),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Tipo de actividad:", fontSize = 12.sp, color = Color.Gray)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        TextButton(onClick = {
+                            tipoNuevaActividad =
+                                com.example.i_love_my_time.modelo.TipoActividad.TRABAJO
+                        }) {
+                            Text(
+                                "Trabajo",
+                                color = if (tipoNuevaActividad == com.example.i_love_my_time.modelo.TipoActividad.TRABAJO) Color(
+                                    0xFF378ADD
+                                ) else Color.Gray
+                            )
+                        }
+                        TextButton(onClick = {
+                            tipoNuevaActividad =
+                                com.example.i_love_my_time.modelo.TipoActividad.DESCANSO_CORTO
+                        }) {
+                            Text(
+                                "Corto",
+                                color = if (tipoNuevaActividad == com.example.i_love_my_time.modelo.TipoActividad.DESCANSO_CORTO) Color(
+                                    0xFFE24B4A
+                                ) else Color.Gray
+                            )
+                        }
+                        TextButton(onClick = {
+                            tipoNuevaActividad =
+                                com.example.i_love_my_time.modelo.TipoActividad.DESCANSO_LARGO
+                        }) {
+                            Text(
+                                "Largo",
+                                color = if (tipoNuevaActividad == com.example.i_love_my_time.modelo.TipoActividad.DESCANSO_LARGO) Color(
+                                    0xFF4CAF50
+                                ) else Color.Gray
+                            )
+                        }
+                    }
+                }
+            },
             confirmButton = {
-                TextButton(onClick = {
-                    viewModel.agregarActividad("Trabajo Enfoque", 25, com.example.i_love_my_time.modelo.TipoActividad.TRABAJO)
-                    mostrarDialogo = false
-                }) { Text("Trabajo (25m)") }
+                TextButton(
+                    onClick = {
+                        // Convertir el texto a número. Si está vacío o es inválido, usa 25 por defecto.
+                        val duracionInt = duracionNuevaActividad.toIntOrNull() ?: 25
+                        val nombreFinal =
+                            if (nombreNuevaActividad.isBlank()) "Actividad" else nombreNuevaActividad
+
+                        // Guardar la actividad con los datos personalizados
+                        viewModel.agregarActividad(nombreFinal, duracionInt, tipoNuevaActividad)
+                        mostrarDialogo = false
+
+                        // Restaurar los valores por defecto para la próxima vez
+                        nombreNuevaActividad = "Trabajo"
+                        duracionNuevaActividad = "25"
+                        tipoNuevaActividad = com.example.i_love_my_time.modelo.TipoActividad.TRABAJO
+                    }
+                ) {
+                    Text("Agregar", fontWeight = FontWeight.Bold, color = Color(0xFF378ADD))
+                }
             },
             dismissButton = {
-                TextButton(onClick = {
-                    viewModel.agregarActividad("Descanso Corto", 5, com.example.i_love_my_time.modelo.TipoActividad.DESCANSO_CORTO)
-                    mostrarDialogo = false
-                }) { Text("Descanso (5m)") }
+                TextButton(onClick = { mostrarDialogo = false }) {
+                    Text("Cancelar", color = Color.Gray)
+                }
             }
         )
     }
