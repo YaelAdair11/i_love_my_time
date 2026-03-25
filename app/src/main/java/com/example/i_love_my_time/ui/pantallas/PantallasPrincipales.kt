@@ -1,5 +1,6 @@
 package com.example.i_love_my_time.ui.pantallas
 
+import android.media.RingtoneManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.items
@@ -7,34 +8,53 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 
+
+// 1. PANTALLA INICIO (TEMPORIZADOR)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaInicio(
-    // Instanciamos el "cerebro" aquí
-    viewModel: InicioViewModel = viewModel()
-) {
+fun PantallaInicio(viewModel: InicioViewModel = viewModel()) {
+    val context = LocalContext.current
+
+    // Carga la rutina seleccionada al entrar a la pantalla
+    LaunchedEffect(Unit) {
+        viewModel.cargarRutinaSeleccionada()
+    }
+
+    // Escucha cuando el temporizador llega a cero para reproducir sonido
+    LaunchedEffect(viewModel.dispararAlarma) {
+        if (viewModel.dispararAlarma) {
+            try {
+                val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM) ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                val ringtone = RingtoneManager.getRingtone(context, uri)
+                ringtone.play()
+                kotlinx.coroutines.delay(3000) // Suena por 3 segundos
+                ringtone.stop()
+            } catch (e: Exception) { e.printStackTrace() }
+            viewModel.alarmaReproducida()
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
     ) {
-        // 1. Barra superior azul
+        // Barra superior azul
         CenterAlignedTopAppBar(
             title = {
                 Text(
@@ -57,7 +77,7 @@ fun PantallaInicio(
             )
         )
 
-        // 2. Contenido principal
+        // Contenido principal
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -69,9 +89,7 @@ fun PantallaInicio(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 24.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFFF5F5F5)
-                ),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(
@@ -81,7 +99,6 @@ fun PantallaInicio(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text("actividad actual", color = Color.Gray, fontSize = 12.sp)
-                    // LEEMOS DEL VIEWMODEL
                     Text(
                         text = viewModel.actividadActualNombre,
                         fontWeight = FontWeight.Bold,
@@ -90,7 +107,6 @@ fun PantallaInicio(
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
-                    // TIEMPO REAL FORMATEADO (MM:SS)
                     Text(
                         text = viewModel.obtenerTiempoFormateado(),
                         fontWeight = FontWeight.ExtraBold,
@@ -98,9 +114,8 @@ fun PantallaInicio(
                         color = Color(0xFF222222)
                     )
 
-                    // BARRA DE PROGRESO REAL
                     LinearProgressIndicator(
-                        progress = viewModel.progreso, // Conectado al estado
+                        progress = viewModel.progreso,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(8.dp)
@@ -111,26 +126,22 @@ fun PantallaInicio(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Botones de control (Stop, Play, Pause)
+                    // Botones de control
                     Row(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Botón Stop - CONECTADO
                         IconButton(onClick = { viewModel.presionarStop() }) {
                             BotonCircularControl(icono = "■", tamañoBoton = 40.dp, tamañoTexto = 16.sp)
                         }
 
                         Spacer(modifier = Modifier.width(24.dp))
 
-                        // Botón Play/Pausa Dinámico - CONECTADO
                         if (viewModel.estaCorriendo) {
-                            // Si está corriendo, mostramos botón de Pausa
                             IconButton(onClick = { viewModel.presionarPausa() }) {
-                                BotonCircularControl(icono = "❚❚", tamañoBoton = 64.dp, tamañoTexto = 24.sp, colorFondo = Color(0xFFE24B4A)) // Rojo para pausa
+                                BotonCircularControl(icono = "❚❚", tamañoBoton = 64.dp, tamañoTexto = 24.sp, colorFondo = Color(0xFFE24B4A))
                             }
                         } else {
-                            // Si está pausado, mostramos botón de Play
                             IconButton(onClick = { viewModel.presionarPlay() }) {
                                 BotonCircularControl(icono = "▶", tamañoBoton = 64.dp, tamañoTexto = 24.sp)
                             }
@@ -138,20 +149,18 @@ fun PantallaInicio(
 
                         Spacer(modifier = Modifier.width(24.dp))
 
-                        // Botón Siguiente (Simulado por ahora como Pausa en tu mockup)
                         BotonCircularControl(icono = "▶|", tamañoBoton = 40.dp, tamañoTexto = 14.sp)
                     }
                 }
             }
 
-            // 3. Indicador de Series REAL
+            // Indicador de Series
             Text(
                 text = "Serie ${viewModel.serieActual} de ${viewModel.totalSeries}",
                 color = Color.Gray,
                 fontSize = 14.sp
             )
             Spacer(modifier = Modifier.height(8.dp))
-            // Dibujamos los puntitos dinámicamente
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 repeat(viewModel.totalSeries) { indice ->
                     val colorPunto = if (indice < viewModel.serieActual) Color(0xFF378ADD) else Color(0xFFDDDDDD)
@@ -161,59 +170,32 @@ fun PantallaInicio(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // 4. Lista de próximas actividades (Fija por ahora, hasta tener BD)
+            // Lista de próximas actividades
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text("Próximas actividades", fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 12.sp)
                 Spacer(modifier = Modifier.height(16.dp))
 
-                FilaActividad(colorHex = 0xFFE24B4A, nombre = "Descanso Corto", tiempo = "05:00")
-                Divider(color = Color(0xFFEEEEEE))
-                FilaActividad(colorHex = 0xFF378ADD, nombre = "Trabajo Enfoque", tiempo = "25:00")
-                Divider(color = Color(0xFFEEEEEE))
-                FilaActividad(colorHex = 0xFFE24B4A, nombre = "Descanso Largo", tiempo = "15:00")
+                viewModel.listaProximas.value.forEach { actividad ->
+                    val colorHex = when(actividad.tipo) {
+                        com.example.i_love_my_time.modelo.TipoActividad.TRABAJO -> 0xFF378ADD
+                        com.example.i_love_my_time.modelo.TipoActividad.DESCANSO_CORTO -> 0xFFE24B4A
+                        com.example.i_love_my_time.modelo.TipoActividad.DESCANSO_LARGO -> 0xFF4CAF50
+                    }
+                    FilaActividad(colorHex = colorHex, nombre = actividad.nombre, tiempo = "${actividad.duracionMinutos}:00")
+                    Divider(color = Color(0xFFEEEEEE))
+                }
             }
         }
     }
 }
 
-// Componente visual para los botones circulares
-@Composable
-fun BotonCircularControl(
-    icono: String,
-    tamañoBoton: androidx.compose.ui.unit.Dp,
-    tamañoTexto: androidx.compose.ui.unit.TextUnit,
-    colorFondo: Color = Color(0xFF378ADD)
-) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .size(tamañoBoton)
-            .background(colorFondo, CircleShape)
-    ) {
-        Text(icono, fontSize = tamañoTexto, color = Color.White, fontWeight = FontWeight.Bold)
-    }
-}
 
-// Función auxiliar para dibujar cada fila de la lista de actividades
-@Composable
-fun FilaActividad(colorHex: Long, nombre: String, tiempo: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(modifier = Modifier.size(10.dp).background(Color(colorHex), CircleShape))
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(nombre, fontWeight = FontWeight.Medium, color = Color(0xFF333333), modifier = Modifier.weight(1f))
-        Text(tiempo, color = Color.Gray)
-    }
-}
+// 2. PANTALLA MIS RUTINAS
 
-// -- Mantenemos las otras pantallas vacías abajo para que no rompa la navegación --
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaRutinas(
+    navController: NavController,
     viewModel: RutinasViewModel = viewModel()
 ) {
     Scaffold(
@@ -223,33 +205,33 @@ fun PantallaRutinas(
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
             )
         },
-        // Botón flotante (+) en la esquina inferior derecha
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { /* Pendiente: Navegar a pantalla Crear */ },
+                onClick = { navController.navigate("crear") },
                 containerColor = Color(0xFF378ADD),
                 contentColor = Color.White
             ) {
-                Icon(androidx.compose.material.icons.Icons.Default.Add, contentDescription = "Crear rutina")
+                Icon(Icons.Default.Add, contentDescription = "Crear rutina")
             }
         },
-        containerColor = Color(0xFFF5F5F5) // Fondo ligeramente gris para que resalten las tarjetas blancas
+        containerColor = Color(0xFFF5F5F5)
     ) { paddingValues ->
-
-        // LazyColumn permite hacer scroll si hay muchas rutinas
         androidx.compose.foundation.lazy.LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp), // Espacio entre cada tarjeta
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(vertical = 16.dp)
         ) {
             items(viewModel.rutinasGuardadas) { rutina ->
                 TarjetaRutina(
                     rutina = rutina,
-                    onIniciar = { /* Pendiente: Cargar rutina en el Dashboard */ },
-                    onEditar = { /* Pendiente: Abrir pantalla de edición */ },
+                    onIniciar = {
+                        viewModel.seleccionarParaIniciar(rutina)
+                        navController.navigate("inicio")
+                    },
+                    onEditar = { /* Pendiente */ },
                     onEliminar = { viewModel.eliminarRutina(rutina) }
                 )
             }
@@ -257,82 +239,22 @@ fun PantallaRutinas(
     }
 }
 
-// Componente visual para cada elemento de la lista
-@Composable
-fun TarjetaRutina(
-    rutina: com.example.i_love_my_time.modelo.Rutina,
-    onIniciar: () -> Unit,
-    onEditar: () -> Unit,
-    onEliminar: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = rutina.nombre,
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                color = Color(0xFF333333)
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                // Mostramos un texto descriptivo temporal
-                text = "Varias actividades • ${rutina.tiempoTotalMinutos} min totales",
-                color = Color.Gray,
-                fontSize = 14.sp
-            )
 
-            Spacer(modifier = Modifier.height(16.dp))
+// 3. PANTALLA CREAR RUTINA
 
-            // Fila de botones de acción
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Button(
-                    onClick = onIniciar,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)), // Verde para iniciar
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Iniciar")
-                }
-
-                OutlinedButton(
-                    onClick = onEditar,
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Editar", color = Color(0xFF378ADD))
-                }
-
-                OutlinedButton(
-                    onClick = onEliminar,
-                    shape = RoundedCornerShape(8.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE24B4A))
-                ) {
-                    Text("Eliminar", color = Color(0xFFE24B4A))
-                }
-            }
-        }
-    }
-}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaCrearRutina(
+    navController: NavController,
     viewModel: CrearRutinaViewModel = viewModel()
 ) {
-    // Estado para controlar si se muestra la ventana flotante de agregar actividad
-    var mostrarDialogo by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var mostrarDialogo by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
     ) {
-        // 1. Barra superior
         CenterAlignedTopAppBar(
             title = { Text("Crear rutina", fontWeight = FontWeight.Bold) },
             colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
@@ -345,7 +267,6 @@ fun PantallaCrearRutina(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 2. Nombre de la rutina
             Text("Nombre de la rutina", fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 12.sp)
             Spacer(modifier = Modifier.height(4.dp))
             OutlinedTextField(
@@ -359,22 +280,19 @@ fun PantallaCrearRutina(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 3. Lista de Actividades
             Text("Actividades", fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 12.sp)
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Mostramos las actividades agregadas dinámicamente
             viewModel.actividades.forEach { actividad ->
                 val colorActividad = when(actividad.tipo) {
-                    com.example.i_love_my_time.modelo.TipoActividad.TRABAJO -> 0xFF378ADD // Azul
-                    com.example.i_love_my_time.modelo.TipoActividad.DESCANSO_CORTO -> 0xFFE24B4A // Rojo
-                    com.example.i_love_my_time.modelo.TipoActividad.DESCANSO_LARGO -> 0xFF4CAF50 // Verde
+                    com.example.i_love_my_time.modelo.TipoActividad.TRABAJO -> 0xFF378ADD
+                    com.example.i_love_my_time.modelo.TipoActividad.DESCANSO_CORTO -> 0xFFE24B4A
+                    com.example.i_love_my_time.modelo.TipoActividad.DESCANSO_LARGO -> 0xFF4CAF50
                 }
                 FilaActividad(colorHex = colorActividad, nombre = actividad.nombre, tiempo = "${actividad.duracionMinutos} min")
                 Divider(color = Color(0xFFEEEEEE))
             }
 
-            // Botón Agregar Actividad
             TextButton(
                 onClick = { mostrarDialogo = true },
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
@@ -384,7 +302,6 @@ fun PantallaCrearRutina(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 4. Repeticiones
             Text("Repeticiones", fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 12.sp)
             Spacer(modifier = Modifier.height(8.dp))
             Row(
@@ -396,20 +313,23 @@ fun PantallaCrearRutina(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Veces", color = Color.Gray, modifier = Modifier.padding(end = 16.dp))
                     IconButton(onClick = { viewModel.disminuirRepeticiones() }) {
-                        Icon(androidx.compose.material.icons.Icons.Default.Add, contentDescription = "Menos", tint = Color.Gray) // Simulado por falta de icono menos directo
+                        Icon(Icons.Default.Add, contentDescription = "Menos", tint = Color.Gray)
                     }
                     Text("${viewModel.repeticiones}", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                     IconButton(onClick = { viewModel.aumentarRepeticiones() }) {
-                        Icon(androidx.compose.material.icons.Icons.Default.Add, contentDescription = "Más", tint = Color.Gray)
+                        Icon(Icons.Default.Add, contentDescription = "Más", tint = Color.Gray)
                     }
                 }
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // 5. Botón Guardar
             Button(
-                onClick = { viewModel.guardarRutina() },
+                onClick = {
+                    viewModel.guardarRutina {
+                        navController.navigate("rutinas")
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 16.dp)
@@ -422,7 +342,6 @@ fun PantallaCrearRutina(
         }
     }
 
-    // Ventana flotante para configurar una nueva actividad
     if (mostrarDialogo) {
         AlertDialog(
             onDismissRequest = { mostrarDialogo = false },
@@ -443,6 +362,10 @@ fun PantallaCrearRutina(
         )
     }
 }
+
+
+// 4. PANTALLA CONFIGURACIÓN
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaConfiguracion(
@@ -463,7 +386,6 @@ fun PantallaConfiguracion(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            // --- SECCIÓN 1: TIPO DE ALARMA ---
             Text("TIPO DE ALARMA", fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 12.sp)
             Spacer(modifier = Modifier.height(8.dp))
             Card(
@@ -482,7 +404,6 @@ fun PantallaConfiguracion(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // --- SECCIÓN 2: MODO RECORDATORIO ---
             Text("MODO RECORDATORIO", fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 12.sp)
             Spacer(modifier = Modifier.height(8.dp))
             Card(
@@ -513,7 +434,6 @@ fun PantallaConfiguracion(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // --- SECCIÓN 3: SEGUNDO PLANO ---
             Text("SEGUNDO PLANO", fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 12.sp)
             Spacer(modifier = Modifier.height(8.dp))
             Card(
@@ -532,7 +452,7 @@ fun PantallaConfiguracion(
                         text = "Configurar permisos",
                         color = Color(0xFF378ADD),
                         fontWeight = FontWeight.Medium,
-                        modifier = Modifier.fillMaxWidth() // En el futuro, esto será clickable
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
@@ -540,7 +460,101 @@ fun PantallaConfiguracion(
     }
 }
 
-// Componente auxiliar para las filas de selección de sonido
+
+// COMPONENTES AUXILIARES
+
+@Composable
+fun BotonCircularControl(
+    icono: String,
+    tamañoBoton: androidx.compose.ui.unit.Dp,
+    tamañoTexto: androidx.compose.ui.unit.TextUnit,
+    colorFondo: Color = Color(0xFF378ADD)
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(tamañoBoton)
+            .background(colorFondo, CircleShape)
+    ) {
+        Text(icono, fontSize = tamañoTexto, color = Color.White, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun FilaActividad(colorHex: Long, nombre: String, tiempo: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(modifier = Modifier.size(10.dp).background(Color(colorHex), CircleShape))
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(nombre, fontWeight = FontWeight.Medium, color = Color(0xFF333333), modifier = Modifier.weight(1f))
+        Text(tiempo, color = Color.Gray)
+    }
+}
+
+@Composable
+fun TarjetaRutina(
+    rutina: com.example.i_love_my_time.modelo.Rutina,
+    onIniciar: () -> Unit,
+    onEditar: () -> Unit,
+    onEliminar: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = rutina.nombre,
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                color = Color(0xFF333333)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "${rutina.actividades.size} actividades • ${rutina.tiempoTotalMinutos} min totales",
+                color = Color.Gray,
+                fontSize = 14.sp
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Button(
+                    onClick = onIniciar,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Iniciar")
+                }
+
+                OutlinedButton(
+                    onClick = onEditar,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Editar", color = Color(0xFF378ADD))
+                }
+
+                OutlinedButton(
+                    onClick = onEliminar,
+                    shape = RoundedCornerShape(8.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE24B4A))
+                ) {
+                    Text("Eliminar", color = Color(0xFFE24B4A))
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun FilaConfiguracionSonido(etiqueta: String, valorActual: String) {
     Row(
@@ -552,7 +566,7 @@ fun FilaConfiguracionSonido(etiqueta: String, valorActual: String) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(valorActual, color = Color.Gray, fontSize = 14.sp)
             Icon(
-                androidx.compose.material.icons.Icons.Default.ArrowDropDown,
+                Icons.Default.ArrowDropDown,
                 contentDescription = "Desplegar",
                 tint = Color.Gray
             )
@@ -560,7 +574,6 @@ fun FilaConfiguracionSonido(etiqueta: String, valorActual: String) {
     }
 }
 
-// Componente auxiliar para las filas con un Switch (Interruptor)
 @Composable
 fun FilaConfiguracionSwitch(texto: String, activo: Boolean, alCambiar: (Boolean) -> Unit) {
     Row(

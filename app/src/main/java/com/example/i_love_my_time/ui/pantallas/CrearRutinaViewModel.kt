@@ -5,21 +5,21 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.example.i_love_my_time.data.RepositorioGlobal
 import com.example.i_love_my_time.modelo.ActividadTemporizador
+import com.example.i_love_my_time.modelo.Rutina
 import com.example.i_love_my_time.modelo.TipoActividad
 import java.util.UUID
 
 class CrearRutinaViewModel : ViewModel() {
-    // Estados de los campos de texto
     var nombreRutina by mutableStateOf("")
     var repeticiones by mutableStateOf(1)
-
-    // Lista dinámica que actualizará la pantalla automáticamente al agregar elementos
     val actividades = mutableStateListOf<ActividadTemporizador>()
 
-    fun actualizarNombre(nuevoNombre: String) {
-        nombreRutina = nuevoNombre
-    }
+    fun actualizarNombre(nuevoNombre: String) { nombreRutina = nuevoNombre }
+    fun disminuirRepeticiones() { if (repeticiones > 1) repeticiones-- }
+    fun aumentarRepeticiones() { repeticiones++ }
+    fun eliminarActividad(actividad: ActividadTemporizador) { actividades.remove(actividad) }
 
     fun agregarActividad(nombre: String, duracion: Int, tipo: TipoActividad) {
         actividades.add(
@@ -32,20 +32,26 @@ class CrearRutinaViewModel : ViewModel() {
         )
     }
 
-    fun eliminarActividad(actividad: ActividadTemporizador) {
-        actividades.remove(actividad)
-    }
+    // AHORA SÍ GUARDA LA RUTINA REAL
+    fun guardarRutina(alGuardar: () -> Unit) {
+        if (nombreRutina.isNotBlank() && actividades.isNotEmpty()) {
+            val tiempoTotal = actividades.sumOf { it.duracionMinutos } * repeticiones
+            val nuevaRutina = Rutina(
+                id = UUID.randomUUID().toString(),
+                nombre = nombreRutina,
+                tiempoTotalMinutos = tiempoTotal,
+                cantidadSeries = repeticiones,
+                actividades = actividades.toList()
+            )
+            RepositorioGlobal.rutinas.add(nuevaRutina)
 
-    fun disminuirRepeticiones() {
-        if (repeticiones > 1) repeticiones--
-    }
+            // Limpiar formulario
+            nombreRutina = ""
+            actividades.clear()
+            repeticiones = 1
 
-    fun aumentarRepeticiones() {
-        repeticiones++
-    }
-
-    fun guardarRutina() {
-        // En la Fase 4 conectaremos esto a la base de datos Room
-        println("Rutina lista para guardar: $nombreRutina con ${actividades.size} actividades")
+            // Avisar a la pantalla que ya terminó
+            alGuardar()
+        }
     }
 }

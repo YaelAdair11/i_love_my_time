@@ -61,8 +61,8 @@ fun AplicacionILoveMyTime() {
             modifier = Modifier.padding(paddingInterno)
         ) {
             composable(ItemNavegacion.Inicio.ruta) { PantallaInicio() }
-            composable(ItemNavegacion.Rutinas.ruta) { PantallaRutinas() }
-            composable(ItemNavegacion.Crear.ruta) { PantallaCrearRutina() }
+            composable(ItemNavegacion.Rutinas.ruta) { PantallaRutinas(controladorNavegacion) }
+            composable(ItemNavegacion.Crear.ruta) { PantallaCrearRutina(controladorNavegacion) }
             composable(ItemNavegacion.Configuracion.ruta) { PantallaConfiguracion() }
         }
     }
